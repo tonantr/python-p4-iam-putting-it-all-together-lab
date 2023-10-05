@@ -8,7 +8,22 @@ from config import app, db, api
 from models import User, Recipe
 
 class Signup(Resource):
-    pass
+    def post(self):
+        json_data = request.get_json()
+        username = json_data.get('username')
+        password = json_data.get('password')
+        image_url = json_data.get('image_url')
+        bio = json_data.get('bio')
+
+        new_user = User(
+            username=username,
+            password=password,
+            image_url=image_url,
+            bio=bio
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        return new_user.to_dict(), 201
 
 class CheckSession(Resource):
     pass
