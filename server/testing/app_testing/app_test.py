@@ -6,6 +6,8 @@ from random import randint, choice as rc
 from app import app
 from models import db, User, Recipe
 
+import pdb
+
 app.secret_key = b'a\xdb\xd2\x13\x93\xc1\xe9\x97\xef2\xe3\x004U\xd1Z'
 
 class TestSignup:
@@ -20,6 +22,8 @@ class TestSignup:
             db.session.commit()
         
         with app.test_client() as client:
+
+            # pdb.set_trace()
             
             response = client.post('/signup', json={
                 'username': 'ashketchum',
@@ -265,21 +269,21 @@ class TestRecipeIndex:
 
             db.session.commit()
 
-        # start actual test here
-        with app.test_client() as client:
+            # start actual test here
+            with app.test_client() as client:
 
-            with client.session_transaction() as session:
-                
-                session['user_id'] = User.query.filter(User.username == "Slagathor").first().id
+                with client.session_transaction() as session:
+                    
+                    session['user_id'] = User.query.filter(User.username == "Slagathor").first().id
 
-            response = client.get('/recipes')
-            response_json = response.get_json()
+                response = client.get('/recipes')
+                response_json = response.get_json()
 
-            assert response.status_code == 200
-            for i in range(15):
-                assert response_json[i]['title']
-                assert response_json[i]['instructions']
-                assert response_json[i]['minutes_to_complete']
+                assert response.status_code == 200
+                for i in range(15):
+                    assert response_json[i]['title']
+                    assert response_json[i]['instructions']
+                    assert response_json[i]['minutes_to_complete']
 
     def test_get_route_returns_401_when_not_logged_in(self):
         
@@ -317,35 +321,37 @@ class TestRecipeIndex:
                 image_url=fake.url(),
             )
 
+            user.password_hash = user.username + 'password'
+
             db.session.add(user)
             db.session.commit()
 
-        # start actual test here
-        with app.test_client() as client:
+            # start actual test here
+            with app.test_client() as client:
 
-            with client.session_transaction() as session:
+                with client.session_transaction() as session:
+                    
+                    session['user_id'] = User.query.filter(User.username == "Slagathor").first().id
+
+                fake = Faker()
+
+                response = client.post('/recipes', json={
+                    'title': fake.sentence(),
+                    'instructions': fake.paragraph(nb_sentences=8),
+                    'minutes_to_complete': randint(15,90)
+                })
+
+                assert response.status_code == 201
+
+                response_json = response.get_json()
                 
-                session['user_id'] = User.query.filter(User.username == "Slagathor").first().id
+                with client.session_transaction() as session:
+                    
+                    new_recipe = Recipe.query.filter(Recipe.user_id == session['user_id']).first()
 
-            fake = Faker()
-
-            response = client.post('/recipes', json={
-                'title': fake.sentence(),
-                'instructions': fake.paragraph(nb_sentences=8),
-                'minutes_to_complete': randint(15,90)
-            })
-
-            assert response.status_code == 201
-
-            response_json = response.get_json()
-            
-            with client.session_transaction() as session:
-                
-                new_recipe = Recipe.query.filter(Recipe.user_id == session['user_id']).first()
-
-            assert response_json['title'] == new_recipe.title
-            assert response_json['instructions'] == new_recipe.instructions
-            assert response_json['minutes_to_complete'] == new_recipe.minutes_to_complete
+                assert response_json['title'] == new_recipe.title
+                assert response_json['instructions'] == new_recipe.instructions
+                assert response_json['minutes_to_complete'] == new_recipe.minutes_to_complete
 
     def test_returns_422_for_invalid_recipes(self):
         with app.app_context():
@@ -362,22 +368,24 @@ class TestRecipeIndex:
                 image_url=fake.url(),
             )
 
+            user.password_hash = user.username + 'password'
+
             db.session.add(user)
             db.session.commit()
 
-        # start actual test here
-        with app.test_client() as client:
+            # start actual test here
+            with app.test_client() as client:
 
-            with client.session_transaction() as session:
-                
-                session['user_id'] = User.query.filter(User.username == "Slagathor").first().id
+                with client.session_transaction() as session:
+                    
+                    session['user_id'] = User.query.filter(User.username == "Slagathor").first().id
 
-            fake = Faker()
+                fake = Faker()
 
-            response = client.post('/recipes', json={
-                'title': fake.sentence(),
-                'instructions': 'figure it out yourself!',
-                'minutes_to_complete': randint(15,90)
-            })
+                response = client.post('/recipes', json={
+                    'title': fake.sentence(),
+                    'instructions': 'figure it out yourself!',
+                    'minutes_to_complete': randint(15,90)
+                })
 
-            assert response.status_code == 422
+                assert response.status_code == 422

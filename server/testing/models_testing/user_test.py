@@ -4,6 +4,8 @@ import pytest
 from app import app
 from models import db, User, Recipe
 
+import pdb
+
 class TestUser:
     '''User in models.py'''
 
@@ -89,6 +91,8 @@ class TestUser:
 
             User.query.delete()
             db.session.commit()
+
+            # pdb.set_trace()
 
             user = User(username="Prabhdip")
 
